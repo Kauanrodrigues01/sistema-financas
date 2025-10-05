@@ -14,6 +14,10 @@ export class UserResponseDto {
   @Expose()
   name: string | null;
 
+  @ApiProperty({ example: false })
+  @Expose()
+  isAdmin: boolean;
+
   @ApiProperty({ example: '2025-10-04T12:00:00.000Z' })
   @Expose()
   createdAt: Date;
