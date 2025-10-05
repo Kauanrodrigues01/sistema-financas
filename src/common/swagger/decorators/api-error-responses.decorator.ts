@@ -73,9 +73,7 @@ export const ApiErrorResponses = (options: ApiErrorResponsesOptions) => {
   if (options.badRequest) {
     decorators.push(
       ApiBadRequest(
-        typeof options.badRequest === 'string'
-          ? options.badRequest
-          : undefined,
+        typeof options.badRequest === 'string' ? options.badRequest : undefined,
       ),
     );
   }

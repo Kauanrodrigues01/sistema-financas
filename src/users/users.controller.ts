@@ -10,13 +10,17 @@ import {
   Patch,
   Post,
   Query,
+  UseGuards,
 } from '@nestjs/common';
 import {
+  ApiBearerAuth,
   ApiCreatedResponse,
   ApiOkResponse,
   ApiOperation,
   ApiTags,
 } from '@nestjs/swagger';
+import { AdminGuard } from 'src/auth/guards/admin.guard';
+import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { PaginatedResponseDto } from 'src/common/dto/paginated-response.dto';
 import { PaginationQueryDto } from 'src/common/dto/pagination-query.dto';
 import { ApiErrorResponses } from 'src/common/swagger/decorators/api-error-responses.decorator';
@@ -28,6 +32,8 @@ import { UserResponseDto } from './dto/user-response.dto';
 import { UsersService } from './users.service';
 
 @ApiTags('Users')
+@ApiBearerAuth()
+@UseGuards(JwtAuthGuard, AdminGuard)
 @Controller('users')
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
@@ -35,7 +41,8 @@ export class UsersController {
   @Post()
   @ApiOperation({
     summary: 'Criar um novo usuário',
-    description: 'Cria um novo usuário com as informações fornecidas',
+    description:
+      'Cria um novo usuário com as informações fornecidas. Apenas administradores.',
   })
   @ApiCreatedResponse({
     description: 'Usuário criado com sucesso',
@@ -44,19 +51,23 @@ export class UsersController {
   @ApiErrorResponses({
     badRequest: 'Dados do usuário inválidos ou erro de validação',
     conflict: 'Email já está em uso',
+    forbidden: 'Acesso negado. Apenas administradores.',
   })
   create(@Body() createUserDto: CreateUserDto): Promise<UserResponseDto> {
     return this.usersService.create(createUserDto);
   }
 
   @Get()
+  @UseGuards(AdminGuard)
   @ApiOperation({
     summary: 'Listar todos os usuários',
-    description: 'Retorna uma lista paginada de todos os usuários',
+    description:
+      'Retorna uma lista paginada de todos os usuários. Apenas administradores.',
   })
   @ApiPaginatedResponse(UserResponseDto)
   @ApiErrorResponses({
     badRequest: 'Parâmetros de paginação inválidos',
+    forbidden: 'Acesso negado. Apenas administradores.',
   })
   findAll(
     @Query() paginationDto: PaginationQueryDto,

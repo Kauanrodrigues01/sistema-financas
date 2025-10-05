@@ -42,6 +42,7 @@ export function createMockUserFactory(overrides?: Partial<User>): User {
     name: 'John Doe',
     email: 'john.doe@example.com',
     password: '$2b$10$abcdefghijklmnopqrstuvwxyz1234567890', // Hash mockado
+    isAdmin: false,
     createdAt: new Date('2025-01-01T00:00:00.000Z'),
     updatedAt: new Date('2025-01-01T00:00:00.000Z'),
     ...overrides,
@@ -55,6 +56,7 @@ export function createMockUserResponseFactory(
     id: 1,
     name: 'John Doe',
     email: 'john.doe@example.com',
+    isAdmin: false,
     createdAt: new Date('2025-01-01T00:00:00.000Z'),
     updatedAt: new Date('2025-01-01T00:00:00.000Z'),
     ...overrides,
