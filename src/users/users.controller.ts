@@ -17,12 +17,12 @@ import {
   ApiOperation,
   ApiTags,
 } from '@nestjs/swagger';
-import { User } from '@prisma/client';
 import { PaginatedResponseDto } from 'src/common/dto/paginated-response.dto';
 import { PaginationQueryDto } from 'src/common/dto/pagination-query.dto';
 import { ApiErrorResponses } from 'src/common/swagger/decorators/api-error-responses.decorator';
 import { ApiPaginatedResponse } from 'src/common/swagger/decorators/api-paginated-response.decorator';
 import { CreateUserDto } from './dto/create-user.dto';
+import { UpdatePasswordDto } from './dto/update-password.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { UserResponseDto } from './dto/user-response.dto';
 import { UsersService } from './users.service';
@@ -45,7 +45,7 @@ export class UsersController {
     badRequest: 'Dados do usuário inválidos ou erro de validação',
     conflict: 'Email já está em uso',
   })
-  create(@Body() createUserDto: CreateUserDto): Promise<User> {
+  create(@Body() createUserDto: CreateUserDto): Promise<UserResponseDto> {
     return this.usersService.create(createUserDto);
   }
 
@@ -60,7 +60,7 @@ export class UsersController {
   })
   findAll(
     @Query() paginationDto: PaginationQueryDto,
-  ): Promise<PaginatedResponseDto<User>> {
+  ): Promise<PaginatedResponseDto<UserResponseDto>> {
     return this.usersService.findAll(paginationDto);
   }
 
@@ -77,7 +77,7 @@ export class UsersController {
     badRequest: 'ID do usuário inválido',
     notFound: 'Usuário não encontrado',
   })
-  findOne(@Param('id', ParseIntPipe) id: number): Promise<User> {
+  findOne(@Param('id', ParseIntPipe) id: number): Promise<UserResponseDto> {
     return this.usersService.findOne(id);
   }
 
@@ -98,8 +98,29 @@ export class UsersController {
   update(
     @Param('id', ParseIntPipe) id: number,
     @Body() updateUserDto: UpdateUserDto,
-  ): Promise<User> {
+  ): Promise<UserResponseDto> {
     return this.usersService.update(id, updateUserDto);
+  }
+
+  @Patch(':id/password')
+  @ApiOperation({
+    summary: 'Atualizar senha do usuário',
+    description:
+      'Atualiza a senha de um usuário validando a senha atual e confirmação da nova senha',
+  })
+  @ApiOkResponse({
+    description: 'Senha atualizada com sucesso',
+    type: UserResponseDto,
+  })
+  @ApiErrorResponses({
+    badRequest: 'Senha atual incorreta ou senhas não coincidem',
+    notFound: 'Usuário não encontrado',
+  })
+  updatePassword(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() updatePasswordDto: UpdatePasswordDto,
+  ): Promise<UserResponseDto> {
+    return this.usersService.updatePassword(id, updatePasswordDto);
   }
 
   @Delete(':id')

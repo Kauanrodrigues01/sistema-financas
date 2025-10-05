@@ -1,8 +1,9 @@
 import { UsersController } from './users.controller';
 import { UsersService } from './users.service';
 import {
-  createMockUserFactory,
+  createMockUserResponseFactory,
   createUserDtoFactory,
+  updatePasswordDtoFactory,
   updateUserDtoFactory,
 } from '../../test/factories/user.factory';
 import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
@@ -14,6 +15,7 @@ describe('UsersController', () => {
     findAll: jest.Mock;
     findOne: jest.Mock;
     update: jest.Mock;
+    updatePassword: jest.Mock;
     remove: jest.Mock;
   };
 
@@ -25,6 +27,7 @@ describe('UsersController', () => {
       findAll: jest.fn(),
       findOne: jest.fn(),
       update: jest.fn(),
+      updatePassword: jest.fn(),
       remove: jest.fn(),
     };
 
@@ -36,15 +39,15 @@ describe('UsersController', () => {
   });
 
   describe('create()', () => {
-    it('should create a new user', async () => {
+    it('should create a new user without password in response', async () => {
       // ARRANGE
       const createUserDto = createUserDtoFactory();
-      const mockUser = createMockUserFactory({
+      const mockUserResponse = createMockUserResponseFactory({
         name: createUserDto.name,
         email: createUserDto.email,
       });
 
-      usersService.create.mockResolvedValue(mockUser);
+      usersService.create.mockResolvedValue(mockUserResponse);
 
       // ACT
       const result = await controller.create(createUserDto);
@@ -52,21 +55,22 @@ describe('UsersController', () => {
       // ASSERT
       expect(usersService.create).toHaveBeenCalledWith(createUserDto);
       expect(usersService.create).toHaveBeenCalledTimes(1);
-      expect(result).toEqual(mockUser);
+      expect(result).toEqual(mockUserResponse);
+      expect(result).not.toHaveProperty('password');
     });
   });
 
   describe('findAll()', () => {
-    it('should return paginated users', async () => {
+    it('should return paginated users without password', async () => {
       // ARRANGE
       const paginationDto: PaginationQueryDto = {
         page: 1,
         limit: 10,
       };
 
-      const mockUser = createMockUserFactory();
+      const mockUserResponse = createMockUserResponseFactory();
       const paginatedResponse = {
-        items: [mockUser],
+        items: [mockUserResponse],
         meta: {
           totalItems: 1,
           itemCount: 1,
@@ -86,6 +90,7 @@ describe('UsersController', () => {
       expect(usersService.findAll).toHaveBeenCalledTimes(1);
       expect(result).toEqual(paginatedResponse);
       expect(result.items).toHaveLength(1);
+      expect(result.items[0]).not.toHaveProperty('password');
       expect(result.meta.totalItems).toBe(1);
     });
 
@@ -93,9 +98,9 @@ describe('UsersController', () => {
       // ARRANGE
       const paginationDto: PaginationQueryDto = {};
 
-      const mockUser = createMockUserFactory();
+      const mockUserResponse = createMockUserResponseFactory();
       const paginatedResponse = {
-        items: [mockUser],
+        items: [mockUserResponse],
         meta: {
           totalItems: 1,
           itemCount: 1,
@@ -146,12 +151,12 @@ describe('UsersController', () => {
   });
 
   describe('findOne()', () => {
-    it('should return a user by id', async () => {
+    it('should return a user by id without password', async () => {
       // ARRANGE
       const userId = 1;
-      const mockUser = createMockUserFactory({ id: userId });
+      const mockUserResponse = createMockUserResponseFactory({ id: userId });
 
-      usersService.findOne.mockResolvedValue(mockUser);
+      usersService.findOne.mockResolvedValue(mockUserResponse);
 
       // ACT
       const result = await controller.findOne(userId);
@@ -159,23 +164,24 @@ describe('UsersController', () => {
       // ASSERT
       expect(usersService.findOne).toHaveBeenCalledWith(userId);
       expect(usersService.findOne).toHaveBeenCalledTimes(1);
-      expect(result).toEqual(mockUser);
+      expect(result).toEqual(mockUserResponse);
       expect(result.id).toBe(userId);
+      expect(result).not.toHaveProperty('password');
     });
   });
 
   describe('update()', () => {
-    it('should update a user', async () => {
+    it('should update a user without password in response', async () => {
       // ARRANGE
       const userId = 1;
       const updateUserDto = updateUserDtoFactory();
-      const mockUser = createMockUserFactory({ id: userId });
-      const updatedUser = createMockUserFactory({
-        ...mockUser,
+      const mockUserResponse = createMockUserResponseFactory({ id: userId });
+      const updatedUserResponse = createMockUserResponseFactory({
+        ...mockUserResponse,
         ...updateUserDto,
       });
 
-      usersService.update.mockResolvedValue(updatedUser);
+      usersService.update.mockResolvedValue(updatedUserResponse);
 
       // ACT
       const result = await controller.update(userId, updateUserDto);
@@ -183,30 +189,55 @@ describe('UsersController', () => {
       // ASSERT
       expect(usersService.update).toHaveBeenCalledWith(userId, updateUserDto);
       expect(usersService.update).toHaveBeenCalledTimes(1);
-      expect(result).toEqual(updatedUser);
+      expect(result).toEqual(updatedUserResponse);
       expect(result.name).toBe(updateUserDto.name);
       expect(result.email).toBe(updateUserDto.email);
+      expect(result).not.toHaveProperty('password');
     });
 
     it('should update user with partial data', async () => {
       // ARRANGE
       const userId = 1;
       const updateUserDto = updateUserDtoFactory({ email: undefined });
-      const mockUser = createMockUserFactory({ id: userId });
-      const updatedUser = createMockUserFactory({
-        ...mockUser,
+      const mockUserResponse = createMockUserResponseFactory({ id: userId });
+      const updatedUserResponse = createMockUserResponseFactory({
+        ...mockUserResponse,
         name: updateUserDto.name,
       });
 
-      usersService.update.mockResolvedValue(updatedUser);
+      usersService.update.mockResolvedValue(updatedUserResponse);
 
       // ACT
       const result = await controller.update(userId, updateUserDto);
 
       // ASSERT
       expect(usersService.update).toHaveBeenCalledWith(userId, updateUserDto);
-      expect(result).toEqual(updatedUser);
+      expect(result).toEqual(updatedUserResponse);
       expect(result.name).toBe(updateUserDto.name);
+      expect(result).not.toHaveProperty('password');
+    });
+  });
+
+  describe('updatePassword()', () => {
+    it('should update user password successfully', async () => {
+      // ARRANGE
+      const userId = 1;
+      const updatePasswordDto = updatePasswordDtoFactory();
+      const mockUserResponse = createMockUserResponseFactory({ id: userId });
+
+      usersService.updatePassword.mockResolvedValue(mockUserResponse);
+
+      // ACT
+      const result = await controller.updatePassword(userId, updatePasswordDto);
+
+      // ASSERT
+      expect(usersService.updatePassword).toHaveBeenCalledWith(
+        userId,
+        updatePasswordDto,
+      );
+      expect(usersService.updatePassword).toHaveBeenCalledTimes(1);
+      expect(result).toEqual(mockUserResponse);
+      expect(result).not.toHaveProperty('password');
     });
   });
 
