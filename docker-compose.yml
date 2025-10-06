@@ -47,7 +47,7 @@ services:
     container_name: sistema-financas-app
     restart: unless-stopped
     ports:
-      - '${APP_PORT:-3000}:3000'
+      - '${HOST_PORT:-3000}:3000'
     environment:
       NODE_ENV: production
       PORT: 3000
