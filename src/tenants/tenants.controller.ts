@@ -30,7 +30,7 @@ import { TenantResponseDto } from './dto/tenant-response.dto';
 import { UpdateTenantDto } from './dto/update-tenant.dto';
 import { TenantsService } from './tenants.service';
 
-@ApiTags('Tenants')
+@ApiTags('Tenants (SuperAdmin Only)')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, AdminGuard)
 @Controller('tenants')

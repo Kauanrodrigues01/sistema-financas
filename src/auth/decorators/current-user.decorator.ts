@@ -4,8 +4,11 @@ interface RequestWithUser {
   user?: {
     id: number;
     email: string;
-    name: string;
-    isAdmin: boolean;
+    name: string | null;
+    isSuperAdmin: boolean;
+    isTenantAdmin: boolean;
+    tenantId: number | null;
+    isActive: boolean;
   };
 }
 
