@@ -39,8 +39,9 @@ RUN npm ci && \
 # Copia código fonte e arquivos de configuração
 COPY . .
 
-# Build da aplicação
+# Build da aplicação e seed
 RUN npm run build && \
+    npm run build:seed && \
     npm cache clean --force
 
 # ============================================================================
@@ -60,6 +61,7 @@ WORKDIR /app
 COPY --from=deps --chown=nestjs:nodejs /app/node_modules ./node_modules
 COPY --from=deps --chown=nestjs:nodejs /app/prisma ./prisma
 COPY --from=builder --chown=nestjs:nodejs /app/dist ./dist
+COPY --from=builder --chown=nestjs:nodejs /app/prisma/seed.js ./prisma/seed.js
 COPY --from=builder --chown=nestjs:nodejs /app/package.json ./package.json
 
 # Muda para usuário não-root (segurança)
