@@ -1,11 +1,7 @@
 export const validationMessages = {
-  EMAIL: {
-    INVALID: 'O email fornecido não é válido.',
-    ALREADY_IN_USE: 'Email já está em uso',
-  } as const,
-  USER: {
-    NOT_FOUND: (id: number): string => `Usuário com ID ${id} não encontrado`,
-  } as const,
+  // ========================================================================
+  // AUTENTICAÇÃO E AUTORIZAÇÃO
+  // ========================================================================
   AUTH: {
     INVALID_CREDENTIALS: 'Credenciais inválidas',
     USER_NOT_FOUND: 'Usuário não encontrado',
@@ -13,8 +9,40 @@ export const validationMessages = {
     ACCESS_DENIED_ADMIN_ONLY:
       'Acesso negado. Apenas administradores podem acessar este recurso.',
   } as const,
+
+  // ========================================================================
+  // EMAIL
+  // ========================================================================
+  EMAIL: {
+    INVALID: 'O email fornecido não é válido.',
+    ALREADY_IN_USE: 'Email já está em uso',
+  } as const,
+
+  // ========================================================================
+  // TENANTS
+  // ========================================================================
+  TENANT: {
+    NOT_FOUND: (id: number): string => `Tenant com ID ${id} não encontrado.`,
+    SLUG_ALREADY_IN_USE: (slug: string): string =>
+      `Slug '${slug}' já está em uso.`,
+    DOCUMENT_ALREADY_IN_USE: (document: string): string =>
+      `Documento '${document}' já está em uso.`,
+  } as const,
+
+  // ========================================================================
+  // USERS
+  // ========================================================================
+  USER: {
+    NOT_FOUND: (id: number): string => `Usuário com ID ${id} não encontrado`,
+  } as const,
+
+  // ========================================================================
+  // RETROCOMPATIBILIDADE (DEPRECATED - usar VALIDATION)
+  // ========================================================================
   NOT_EMPTY: (field: string): string => `${field} não deve estar vazio.`,
   IS_STRING: (field: string): string => `${field} deve ser uma string.`,
+  IS_INT: (field: string): string => `${field} deve ser um número inteiro.`,
+  IS_BOOLEAN: (field: string): string => `${field} deve ser um valor booleano.`,
   MIN_LENGTH: (min: number): string =>
     `Este campo deve ter pelo menos ${min} caracteres.`,
   MAX_LENGTH: (max: number): string =>

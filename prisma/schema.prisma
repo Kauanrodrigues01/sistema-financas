@@ -13,12 +13,239 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model User {
-  id        Int      @id @default(autoincrement())
-  email     String   @unique
-  name      String?
-  password  String
-  isAdmin   Boolean  @default(false)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+// ============================================================================
+// TENANT (Empresa/Cliente)
+// ============================================================================
+// Representa cada empresa/cliente que aluga a aplicação (sistema multi-tenant)
+// Cada tenant terá seus próprios usuários, roles e dados isolados
+model Tenant {
+  id          Int      @id @default(autoincrement())
+  name        String   // Nome da empresa (ex: "Empresa ABC Ltda")
+  slug        String   @unique // Identificador único (ex: "empresa-abc")
+  document    String?  @unique // CNPJ ou identificação fiscal
+  isActive    Boolean  @default(true) // Tenant ativo/inativo
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relacionamentos
+  users       User[]   // Usuários pertencentes a este tenant
+  roles       Role[]   // Roles/cargos criados para este tenant
+
+  @@map("tenants")
 }
+
+// ============================================================================
+// USER (Usuário)
+// ============================================================================
+// Usuário do sistema com suporte a multi-tenant e controle de permissões
+// Três tipos de usuários:
+// 1. Super Admin (isSuperAdmin = true): Seu usuário, controle total
+// 2. Tenant Admin (isTenantAdmin = true): Admin da empresa, gerencia sua empresa
+// 3. Usuário Normal: Permissões definidas por roles e permissões diretas
+model User {
+  id              Int      @id @default(autoincrement())
+  email           String   @unique
+  name            String?
+  password        String
+
+  // ========== NÍVEIS DE ADMINISTRAÇÃO ==========
+
+  // Super Admin: Administrador global do sistema
+  // - Acesso total ao sistema
+  // - Não vinculado a nenhum tenant
+  // - Pode gerenciar todos os tenants e usuários
+  isSuperAdmin    Boolean  @default(false)
+
+  // Tenant Admin: Administrador da empresa/cliente
+  // - Pode gerenciar usuários do próprio tenant
+  // - Pode criar e atribuir roles e permissões
+  // - Limitado aos dados do seu tenant
+  isTenantAdmin   Boolean  @default(false)
+
+  // ========== VINCULAÇÃO COM TENANT ==========
+
+  // ID do tenant ao qual o usuário pertence
+  // NULL apenas para Super Admin (não pertence a nenhum tenant)
+  tenantId        Int?
+  tenant          Tenant?  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // ========== SISTEMA DE PERMISSÕES ==========
+
+  // Roles atribuídos ao usuário (grupos de permissões)
+  userRoles       UserRole[]
+
+  // Permissões diretas do usuário (sobrescrevem as permissões das roles)
+  userPermissions UserPermission[]
+
+  @@index([tenantId])
+  @@index([email])
+  @@map("users")
+}
+
+// ============================================================================
+// PERMISSION (Permissão)
+// ============================================================================
+// Permissões granulares no estilo Django
+// Formato do codename: "module.action_resource"
+// Exemplos:
+//   - users.add_user (criar usuário)
+//   - finance.view_transaction (visualizar transação)
+//   - finance.delete_transaction (excluir transação)
+//   - reports.export_report (exportar relatório)
+model Permission {
+  id          Int      @id @default(autoincrement())
+
+  // Código único da permissão (ex: "add_user", "view_transaction")
+  codename    String   @unique
+
+  // Nome descritivo da permissão (ex: "Adicionar Usuário")
+  name        String
+
+  // Módulo/contexto da permissão (ex: "users", "finance", "reports")
+  module      String
+
+  // Descrição detalhada (opcional)
+  description String?
+
+  createdAt   DateTime @default(now())
+
+  // Relacionamentos
+  rolePermissions RolePermission[] // Permissões atribuídas a roles
+  userPermissions UserPermission[] // Permissões atribuídas diretamente a usuários
+
+  @@index([module])
+  @@index([codename])
+  @@map("permissions")
+}
+
+// ============================================================================
+// ROLE (Papel/Cargo)
+// ============================================================================
+// Grupo de permissões que pode ser atribuído a usuários
+// Cada role pertence a um tenant específico
+// Exemplos: "Gerente Financeiro", "Contador", "Visualizador", "Operador"
+model Role {
+  id          Int      @id @default(autoincrement())
+
+  // Nome do papel (ex: "Gerente Financeiro")
+  name        String
+
+  // Descrição do papel (opcional)
+  description String?
+
+  // ========== VINCULAÇÃO COM TENANT ==========
+
+  // Cada role pertence a um tenant
+  // Isso permite que cada empresa crie seus próprios cargos personalizados
+  tenantId    Int
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relacionamentos
+  userRoles       UserRole[]       // Usuários que possuem esta role
+  rolePermissions RolePermission[] // Permissões incluídas nesta role
+
+  // Garante que não existam roles com mesmo nome no mesmo tenant
+  @@unique([tenantId, name])
+  @@index([tenantId])
+  @@map("roles")
+}
+
+// ============================================================================
+// USER_ROLE (Tabela Pivot: Usuário -> Role)
+// ============================================================================
+// Relacionamento N:N entre User e Role
+// Um usuário pode ter múltiplas roles
+// Uma role pode ser atribuída a múltiplos usuários
+model UserRole {
+  id        Int      @id @default(autoincrement())
+
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  roleId    Int
+  role      Role     @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  // Garante que um usuário não tenha a mesma role duplicada
+  @@unique([userId, roleId])
+  @@index([userId])
+  @@index([roleId])
+  @@map("user_roles")
+}
+
+// ============================================================================
+// ROLE_PERMISSION (Tabela Pivot: Role -> Permission)
+// ============================================================================
+// Relacionamento N:N entre Role e Permission
+// Uma role pode ter múltiplas permissões
+// Uma permissão pode estar em múltiplas roles
+model RolePermission {
+  id           Int        @id @default(autoincrement())
+
+  roleId       Int
+  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  permissionId Int
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  createdAt    DateTime   @default(now())
+
+  // Garante que uma role não tenha a mesma permissão duplicada
+  @@unique([roleId, permissionId])
+  @@index([roleId])
+  @@index([permissionId])
+  @@map("role_permissions")
+}
+
+// ============================================================================
+// USER_PERMISSION (Tabela Pivot: Usuário -> Permission)
+// ============================================================================
+// Permissões atribuídas diretamente ao usuário
+// Estas permissões SOBRESCREVEM as permissões das roles
+// Útil para casos especiais onde um usuário precisa de uma permissão específica
+// sem precisar criar uma nova role
+model UserPermission {
+  id           Int        @id @default(autoincrement())
+
+  userId       Int
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  permissionId Int
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  createdAt    DateTime   @default(now())
+
+  // Garante que um usuário não tenha a mesma permissão direta duplicada
+  @@unique([userId, permissionId])
+  @@index([userId])
+  @@index([permissionId])
+  @@map("user_permissions")
+}
+
+
+// Exemplos de Permissions (estilo Django)
+// // Módulo: users
+// users.add_user
+// users.change_user
+// users.delete_user
+// users.view_user
+
+// // Módulo: finance
+// finance.add_transaction
+// finance.change_transaction
+// finance.delete_transaction
+// finance.view_transaction
+// finance.view_reports
+// finance.export_reports
+
+// // Módulo: settings
+// settings.change_tenant_settings
+// settings.view_tenant_settings

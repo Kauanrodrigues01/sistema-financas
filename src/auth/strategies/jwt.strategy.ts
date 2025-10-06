@@ -21,12 +21,20 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
         id: true,
         email: true,
         name: true,
-        isAdmin: true,
+        isSuperAdmin: true,
+        isTenantAdmin: true,
+        tenantId: true,
+        isActive: true,
       },
     });
 
     if (!user) {
       throw new UnauthorizedException(validationMessages.AUTH.USER_NOT_FOUND);
+    }
+
+    // Verificar se o usuário está ativo
+    if (!user.isActive) {
+      throw new UnauthorizedException('Usuário desativado');
     }
 
     return user;
