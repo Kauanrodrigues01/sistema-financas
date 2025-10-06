@@ -65,7 +65,7 @@ services:
       timeout: 3s
       retries: 3
     # Roda migrations antes de iniciar (seed deve ser executado manualmente)
-    command: sh -c "npx prisma migrate deploy && node dist/src/main.js"
+    command: sh -c "npx prisma migrate deploy && npx prisma db seed && node dist/src/main.js"
 
 networks:
   sistema-financas-network:
