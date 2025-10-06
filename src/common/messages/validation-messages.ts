@@ -37,7 +37,7 @@ export const validationMessages = {
   } as const,
 
   // ========================================================================
-  // RETROCOMPATIBILIDADE (DEPRECATED - usar VALIDATION)
+  // VALIDAÇÕES COMUNS
   // ========================================================================
   NOT_EMPTY: (field: string): string => `${field} não deve estar vazio.`,
   IS_STRING: (field: string): string => `${field} deve ser uma string.`,
