@@ -1,0 +1,66 @@
+# ============================================================================
+# Docker Compose - Desenvolvimento
+# ============================================================================
+# Versão otimizada para desenvolvimento local com hot-reload
+
+services:
+  # ============================================================================
+  # PostgreSQL Database
+  # ============================================================================
+  postgres:
+    image: postgres:17.2-alpine
+    container_name: sistema-financas-db-dev
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-sistema_financas_dev}
+    ports:
+      - '${POSTGRES_PORT:-5432}:5432'
+    volumes:
+      - postgres_data_dev:/var/lib/postgresql/data
+    networks:
+      - sistema-financas-network-dev
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-postgres}']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ============================================================================
+  # NestJS Application (Development Mode)
+  # ============================================================================
+  app-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: sistema-financas-app-dev
+    restart: unless-stopped
+    ports:
+      - '${APP_PORT:-3000}:3000'
+      - '9229:9229' # Debug port
+    environment:
+      NODE_ENV: development
+      PORT: 3000
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-sistema_financas_dev}?schema=public
+      JWT_SECRET: ${JWT_SECRET:-dev-secret-key}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-7d}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - sistema-financas-network-dev
+    volumes:
+      # Monta o código fonte para hot-reload
+      - ./src:/app/src
+      - ./prisma:/app/prisma
+      - /app/node_modules
+    command: npm run start:dev
+
+networks:
+  sistema-financas-network-dev:
+    driver: bridge
+
+volumes:
+  postgres_data_dev:
+    driver: local

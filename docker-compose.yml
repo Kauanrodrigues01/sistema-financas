@@ -1,6 +1,7 @@
-version: '3.8'
-
 services:
+  # ============================================================================
+  # PostgreSQL Database
+  # ============================================================================
   postgres:
     image: postgres:17.2-alpine
     container_name: sistema-financas-db
@@ -9,16 +10,69 @@ services:
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
       POSTGRES_DB: ${POSTGRES_DB:-sistema_financas}
+      # Otimizações de performance
+      POSTGRES_INITDB_ARGS: "-E UTF8 --locale=C"
     ports:
       - '${POSTGRES_PORT:-5432}:5432'
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    networks:
+      - sistema-financas-network
     healthcheck:
       test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-postgres}']
       interval: 10s
       timeout: 5s
       retries: 5
+      start_period: 10s
+    # Limita recursos para evitar consumo excessivo
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 512M
+        reservations:
+          cpus: '0.5'
+          memory: 256M
+
+  # ============================================================================
+  # NestJS Application
+  # ============================================================================
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      # Cache do build para acelerar rebuilds
+      cache_from:
+        - node:20.18.1-alpine
+    container_name: sistema-financas-app
+    restart: unless-stopped
+    ports:
+      - '${APP_PORT:-3000}:3000'
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-sistema_financas}?schema=public
+      JWT_SECRET: ${JWT_SECRET:-your-super-secret-jwt-key-change-in-production}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-7d}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - sistema-financas-network
+    healthcheck:
+      test: ['CMD', 'node', '-e', "require('http').get('http://localhost:3000/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+    # Roda migrations antes de iniciar
+    command: sh -c "npx prisma migrate deploy && npx prisma db seed && node dist/src/main.js"
+
+networks:
+  sistema-financas-network:
+    driver: bridge
 
 volumes:
   postgres_data:
     driver: local
+  # redis_data:
+  #   driver: local

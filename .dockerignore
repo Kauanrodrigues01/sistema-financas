@@ -1,0 +1,66 @@
+# ============================================================================
+# .dockerignore - Arquivos ignorados no build Docker
+# ============================================================================
+# Isso reduz o contexto de build e acelera o processo
+
+# Dependencies
+node_modules
+npm-debug.log
+yarn-error.log
+yarn.lock
+
+# Testing
+coverage
+*.log
+.nyc_output
+*.spec.ts
+test
+
+# IDE
+.idea
+.vscode
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Git
+.git
+.gitignore
+.gitattributes
+
+# Docker
+Dockerfile
+docker-compose*.yml
+.dockerignore
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# Build
+dist
+build
+
+# Misc
+*.md
+!README.md
+.editorconfig
+.prettierrc
+.prettierignore
+.eslintrc.js
+.eslintignore
+eslint.config.mjs
+
+# CI/CD
+.github
+.gitlab-ci.yml
+.travis.yml
+
+# Documentation
+docs
+*.pdf

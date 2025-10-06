@@ -1,0 +1,28 @@
+# ============================================================================
+# Dockerfile para Desenvolvimento
+# ============================================================================
+# Versão simplificada com hot-reload para desenvolvimento local
+
+FROM node:20.18.1-alpine
+
+# Instala ferramentas necessárias
+RUN apk add --no-cache libc6-compat openssl bash
+
+WORKDIR /app
+
+# Copia arquivos de dependências
+COPY package*.json ./
+COPY prisma ./prisma/
+
+# Instala todas as dependências (incluindo devDependencies)
+RUN npm install && \
+    npx prisma generate
+
+# Copia o código fonte
+COPY . .
+
+# Expõe a porta da aplicação e debug
+EXPOSE 3000 9229
+
+# Comando padrão para desenvolvimento
+CMD ["npm", "run", "start:dev"]
